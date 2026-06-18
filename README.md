@@ -39,6 +39,9 @@ terraform/
     lambda/
     eventbridge/
     api_gateway/
+.github/
+  workflows/
+    deploy.yml        # CI/CD — auto-deploys on every push to main
 ```
 
 ## Deploying
@@ -58,34 +61,45 @@ aws sts get-caller-identity
 pip install -r lambdas/ingestion/requirements.txt -t lambdas/ingestion/
 ```
 
-**3. Deploy**
+**3. Create the Terraform state bucket** (one-time)
+```bash
+ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+aws s3 mb s3://stock-mover-tfstate-${ACCOUNT} --region us-east-1
+aws s3api put-bucket-versioning \
+  --bucket stock-mover-tfstate-${ACCOUNT} \
+  --versioning-configuration Status=Enabled
+```
+
+**4. Deploy**
 ```bash
 cd terraform
-terraform init
+terraform init \
+  -backend-config="bucket=stock-mover-tfstate-${ACCOUNT}" \
+  -backend-config="region=us-east-1"
 terraform apply -var="stock_api_key=YOUR_MASSIVE_KEY"
 ```
 
 This creates everything — DynamoDB, both Lambdas, EventBridge cron, API Gateway, and the S3 bucket.
 
-**4. Wire the frontend to the API**
-
-After apply, grab the API URL:
-```bash
-terraform output api_url
-```
-
-Open `frontend/index.html` and replace the placeholder:
-```js
-const API_URL = "REPLACE_WITH_TERRAFORM_OUTPUT_api_url";
-```
-
 **5. Upload the frontend**
 ```bash
-terraform output frontend_url  # tells you the bucket name
-aws s3 cp ../frontend/index.html s3://YOUR_BUCKET_NAME/index.html
+BUCKET=$(terraform output -raw bucket_name)
+aws s3 cp ../frontend/index.html s3://${BUCKET}/index.html
 ```
 
 Site is live at the `frontend_url` output.
+
+## CI/CD
+
+Every push to `main` auto-deploys via GitHub Actions. Add three repository secrets under **Settings → Secrets and variables → Actions**:
+
+| Secret | Value |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | IAM user access key |
+| `AWS_SECRET_ACCESS_KEY` | IAM user secret key |
+| `STOCK_API_KEY` | Massive API key |
+
+The workflow installs dependencies, bootstraps remote state, runs `terraform apply`, and uploads the frontend — no manual steps needed.
 
 ## A few design decisions worth noting
 
@@ -94,6 +108,8 @@ Site is live at the `frontend_url` output.
 **Retries on rate limits** — if Massive returns a 429, the ingestion Lambda backs off exponentially and retries up to 3 times per ticker. If one ticker fails entirely, it's skipped and the rest still run. Only aborts if every ticker fails.
 
 **GetItem over Scan** — the retrieval Lambda makes 7 individual `GetItem` calls (one per date) instead of scanning the table. Cheaper and faster since we know the exact partition keys.
+
+**Remote Terraform state** — state is stored in S3 so CI/CD runs don't lose track of existing infrastructure between deploys.
 
 ## Secrets
 
