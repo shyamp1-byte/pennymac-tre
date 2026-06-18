@@ -14,3 +14,8 @@ output "dynamodb_table_name" {
   description = "DynamoDB table name"
   value       = module.dynamodb.table_name
 }
+
+output "bucket_name" {
+  description = "S3 frontend bucket name (used by CI to upload index.html)"
+  value       = aws_s3_bucket.frontend.id
+}
