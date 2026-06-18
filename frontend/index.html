@@ -178,8 +178,7 @@
   <footer>Data provided by Massive · Powered by AWS Lambda + DynamoDB</footer>
 
   <script>
-    // Replace this with the value of `api_url` from `terraform output` after deploying
-    const API_URL = "REPLACE_WITH_TERRAFORM_OUTPUT_api_url";
+    const API_URL = "https://8dchtx3ite.execute-api.us-east-1.amazonaws.com/prod/movers";
 
     async function loadMovers() {
       const loading = document.getElementById("loading");
