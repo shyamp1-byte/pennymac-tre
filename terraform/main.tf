@@ -12,6 +12,7 @@ module "ingestion_lambda" {
   source        = "./modules/lambda"
   function_name = "stock-mover-ingestion"
   source_dir    = "${path.root}/../lambdas/ingestion"
+  timeout       = 30 # 6 sequential API calls need more than the 10s default
   environment_variables = {
     TABLE_NAME    = module.dynamodb.table_name
     STOCK_API_KEY = var.stock_api_key
