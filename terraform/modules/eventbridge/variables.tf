@@ -3,12 +3,12 @@ variable "rule_name" {
   type        = string
 }
 
-# Cron runs at 9:05 PM UTC (4:05 PM EST) — shortly after US market close at 4 PM EST
+# Cron runs at 12:00 PM UTC (8:00 AM EDT) — fetches previous day's data after Massive has processed it overnight
 # AWS cron format: cron(minutes hours day-of-month month day-of-week year)
 variable "schedule_expression" {
   description = "EventBridge schedule expression (cron or rate)"
   type        = string
-  default     = "cron(5 21 * * ? *)"
+  default     = "cron(0 12 * * ? *)"
 }
 
 # ARN of the Lambda function this rule will invoke

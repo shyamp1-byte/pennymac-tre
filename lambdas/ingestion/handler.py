@@ -2,7 +2,7 @@ import json
 import logging
 import os
 import time
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import boto3
@@ -19,8 +19,8 @@ WATCHLIST = ["AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "NVDA"]
 # Injected by Terraform at deploy time — never hardcoded
 TABLE_NAME = os.environ["TABLE_NAME"]
 API_KEY = os.environ["STOCK_API_KEY"]
-# Polygon.io free tier — override via env var to swap providers without code changes
-API_BASE_URL = os.environ.get("STOCK_API_BASE_URL", "https://api.polygon.io")
+# Override via env var to swap providers without code changes
+API_BASE_URL = os.environ.get("STOCK_API_BASE_URL", "https://api.massive.com")
 
 # Reuse the DynamoDB resource across warm invocations (avoids reconnect overhead)
 dynamodb = boto3.resource("dynamodb")
@@ -56,14 +56,15 @@ def fetch_daily_bar(ticker: str, date_str: str, retries: int = 3) -> dict:
 
 
 def lambda_handler(event, context):
-    today = date.today().isoformat()  # YYYY-MM-DD — used as DynamoDB partition key
-    logger.info("Running ingestion for %s", today)
+    # Fetch previous market day — Massive free tier processes data overnight, not same-day
+    target_date = (date.today() - timedelta(days=1)).isoformat()
+    logger.info("Running ingestion for %s", target_date)
 
     # Collect % change for every ticker; skip failures so one bad ticker doesn't abort the run
     results = []
     for ticker in WATCHLIST:
         try:
-            data = fetch_daily_bar(ticker, today)
+            data = fetch_daily_bar(ticker, target_date)
             open_price = data["open"]
             close_price = data["close"]
 
@@ -90,7 +91,7 @@ def lambda_handler(event, context):
     try:
         # DynamoDB requires Decimal (not float) for numeric types
         table.put_item(Item={
-            "date": today,
+            "date": target_date,
             "ticker": winner["ticker"],
             "percent_change": Decimal(str(round(winner["percent_change"], 4))),
             "closing_price": Decimal(str(winner["closing_price"])),
