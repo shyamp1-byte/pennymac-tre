@@ -6,7 +6,7 @@ variable "aws_region" {
 
 # Passed via TF_VAR_stock_api_key env var — never hardcoded or committed
 variable "stock_api_key" {
-  description = "API key for stock data provider (Polygon.io)"
+  description = "API key for stock data provider (Massive)"
   type        = string
   sensitive   = true
 }

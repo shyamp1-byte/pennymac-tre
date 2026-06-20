@@ -1,4 +1,4 @@
-# Cron rule — fires on schedule_expression, disabled state means it won't run until enabled
+# Cron rule — fires daily at 12:00 PM UTC (8 AM EDT), fetching previous day's settled market data
 resource "aws_cloudwatch_event_rule" "cron" {
   name                = var.rule_name
   schedule_expression = var.schedule_expression

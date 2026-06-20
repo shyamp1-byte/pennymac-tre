@@ -126,3 +126,23 @@ resource "aws_s3_bucket_policy" "frontend_public_read" {
 
 # Used to make the S3 bucket name unique per AWS account
 data "aws_caller_identity" "current" {}
+
+# ── CloudWatch Alarm ──────────────────────────────────────────────────────────
+
+# Fires if ingestion Lambda throws any errors in a 24-hour window
+resource "aws_cloudwatch_metric_alarm" "ingestion_errors" {
+  alarm_name          = "stock-mover-ingestion-errors"
+  alarm_description   = "Ingestion Lambda failed — no winner written to DynamoDB today"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  statistic           = "Sum"
+  period              = 86400
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching" # weekends/holidays produce no data — don't alarm
+  dimensions = {
+    FunctionName = module.ingestion_lambda.function_name
+  }
+  tags = var.tags
+}

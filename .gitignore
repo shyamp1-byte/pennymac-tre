@@ -1,9 +1,35 @@
+# Terraform
 .terraform/
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
 terraform.tfvars
-.env
+
+# Lambda build artifacts
+*.zip
+lambdas/ingestion/requests/
+lambdas/ingestion/requests-*/
+lambdas/ingestion/urllib3/
+lambdas/ingestion/urllib3-*/
+lambdas/ingestion/certifi/
+lambdas/ingestion/certifi-*/
+lambdas/ingestion/charset_normalizer/
+lambdas/ingestion/charset_normalizer-*/
+lambdas/ingestion/idna/
+lambdas/ingestion/idna-*/
+lambdas/ingestion/*.dist-info/
+
+# Python
 __pycache__/
 *.pyc
+
+# Secrets
+.env
+
+# OS
 .DS_Store
+
+# Misc
+response.json
+lambdas/ingestion/bin/
+lambdas/ingestion/*.so
